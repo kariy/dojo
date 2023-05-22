@@ -20,6 +20,10 @@ Dojo provides:
 - Concise macros for interacting with world state and functions.
 - Typed interface generation for client libraries (Coming soon)
 
+## Installation
+
+See the [installation guide](https://book.dojoengine.org/getting-started/installation.html) in the book.
+
 ## Overview
 
 ### Entity Component System
@@ -108,14 +112,6 @@ mod MoveSystem {
 An entity is addressed by a `felt252`. An entity represents a collection of component state.
 
 ## Development
-
-### Cairo Submodule
-
-Make sure that the Cairo 1 submodule is present when this repository is cloned
-
-```bash
-git submodule init && git submodule update
-```
 
 ### Dev Container
 
