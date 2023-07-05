@@ -37,7 +37,7 @@ use crate::constants::{
     UDC_CLASS_HASH,
 };
 use crate::sequencer_error::SequencerError;
-use crate::state::{ClassRecord, MemDb, StorageRecord};
+use crate::state::MemDb;
 use crate::util::{
     convert_blockifier_tx_to_starknet_api_tx, convert_state_diff_to_rpc_state_diff,
     get_current_timestamp,
