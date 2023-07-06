@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use anyhow::Result;
 use blockifier::block_context::BlockContext;
 use blockifier::execution::entry_point::{
@@ -18,11 +21,13 @@ use starknet_api::core::{ClassHash, ContractAddress, GlobalRoot, PatriciaKey};
 use starknet_api::hash::{StarkFelt, StarkHash};
 use starknet_api::transaction::{DeclareTransactionV0V1, DeployTransaction, TransactionHash};
 use starknet_api::{patricia_key, stark_felt};
+use tokio::sync::RwLock;
 use tracing::{info, warn};
 
 pub mod block;
 pub mod config;
 pub mod contract;
+pub mod env;
 pub mod event;
 pub mod transaction;
 
@@ -36,6 +41,7 @@ use crate::constants::{
     DEFAULT_PREFUNDED_ACCOUNT_BALANCE, ERC20_CONTRACT_CLASS_HASH, FEE_TOKEN_ADDRESS, UDC_ADDRESS,
     UDC_CLASS_HASH,
 };
+use crate::db::Db;
 use crate::sequencer_error::SequencerError;
 use crate::state::MemDb;
 use crate::util::{

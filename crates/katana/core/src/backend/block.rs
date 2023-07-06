@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
 use starknet::core::types::StateUpdate;
 use starknet_api::block::{
     Block, BlockBody, BlockHash, BlockHeader, BlockNumber, BlockStatus, BlockTimestamp, GasPrice,
@@ -10,6 +11,19 @@ use starknet_api::stark_felt;
 use starknet_api::transaction::{Transaction, TransactionOutput};
 
 use crate::state::MemDb;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MinedBlock {
+    pub header: BlockHeader,
+    pub body: BlockBody,
+    pub status: BlockStatus,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PendingBlock {
+    pub header: BlockHeader,
+    pub body: BlockBody,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct StarknetBlock {
