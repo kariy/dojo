@@ -479,9 +479,8 @@ fn apply_new_state(old_state: &mut MemDb, new_state: &mut CachedState<MemDb>) {
 
     // update accounts nonce
     state_diff.address_to_nonce.into_iter().for_each(|(contract_address, nonce)| {
-        old_state.state.get_mut(&contract_address).and_then(|r| {
+        if let Some(r) = old_state.state.get_mut(&contract_address) {
             r.nonce = nonce;
-            Some(())
-        });
+        }
     });
 }

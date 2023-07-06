@@ -1,14 +1,13 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
+use std::sync::Arc;
 
 use anyhow::Context;
 use cairo_lang_casm::hints::Hint;
 use cairo_vm::serde::deserialize_program::{parse_program_json, BuiltinName, ProgramJson};
 use serde::{Deserialize, Serialize};
 use starknet::core::types::FieldElement;
-use starknet_api::{
-    core::EntryPointSelector,
-    deprecated_contract_class::{EntryPoint, EntryPointOffset, EntryPointType},
-};
+use starknet_api::core::EntryPointSelector;
+use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointOffset, EntryPointType};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SerializableContractClass {

@@ -73,7 +73,9 @@ impl StateExt for MemDb {
         class_hash: ClassHash,
         sierra_class: FlattenedSierraClass,
     ) -> StateResult<()> {
-        self.classes.get_mut(&class_hash).map(|r| r.sierra_class = Some(sierra_class));
+        if let Some(r) = self.classes.get_mut(&class_hash) {
+            r.sierra_class = Some(sierra_class);
+        }
         Ok(())
     }
 }

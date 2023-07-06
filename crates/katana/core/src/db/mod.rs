@@ -6,14 +6,13 @@ use anyhow::Result;
 use blockifier::state::state_api::{State, StateReader};
 use serde::{Deserialize, Serialize};
 use starknet::core::types::{FieldElement, FlattenedSierraClass};
-use starknet_api::{
-    core::{ClassHash, CompiledClassHash, ContractAddress, Nonce, PatriciaKey},
-    hash::StarkHash,
-    patricia_key,
-    state::StorageKey,
-};
+use starknet_api::core::{ClassHash, CompiledClassHash, ContractAddress, Nonce, PatriciaKey};
+use starknet_api::hash::StarkHash;
+use starknet_api::patricia_key;
+use starknet_api::state::StorageKey;
 
-use crate::{db::contract::SerializableContractClass, state::StateExt};
+use crate::db::contract::SerializableContractClass;
+use crate::state::StateExt;
 
 pub trait Db: State + StateReader + StateExt {
     fn set_nonce(&mut self, addr: ContractAddress, nonce: Nonce);
