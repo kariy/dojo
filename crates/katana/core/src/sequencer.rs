@@ -24,14 +24,14 @@ use starknet_api::transaction::{
 use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use tokio::time;
 
+use crate::backend::block::StarknetBlock;
+use crate::backend::config::StarknetConfig;
+use crate::backend::contract::StarknetContract;
+use crate::backend::event::EmittedEvent;
+use crate::backend::transaction::ExternalFunctionCall;
+use crate::backend::StarknetWrapper;
 use crate::sequencer_error::SequencerError;
-use crate::starknet::block::StarknetBlock;
-use crate::starknet::config::StarknetConfig;
-use crate::starknet::contract::StarknetContract;
-use crate::starknet::event::EmittedEvent;
-use crate::starknet::transaction::ExternalFunctionCall;
-use crate::starknet::StarknetWrapper;
-use crate::state::DictStateReader;
+use crate::state::{MemDb, StateExt};
 use crate::util::starkfelt_to_u128;
 
 type SequencerResult<T> = Result<T, SequencerError>;
@@ -119,7 +119,12 @@ impl KatanaSequencer {
     }
 
     pub(self) async fn verify_contract_exists(&self, contract_address: &ContractAddress) -> bool {
-        self.starknet.write().await.state.address_to_class_hash.contains_key(contract_address)
+        self.starknet
+            .write()
+            .await
+            .state
+            .get_class_hash_at(*contract_address)
+            .is_ok_and(|c| c != ClassHash::default())
     }
 }
 
@@ -133,7 +138,7 @@ impl Sequencer for KatanaSequencer {
         self.starknet.write().await
     }
 
-    async fn state(&self, block_id: &BlockId) -> SequencerResult<DictStateReader> {
+    async fn state(&self, block_id: &BlockId) -> SequencerResult<MemDb> {
         match block_id {
             BlockId::Tag(BlockTag::Latest) => Ok(self.starknet.write().await.latest_state()),
             BlockId::Tag(BlockTag::Pending) => Ok(self.starknet.write().await.pending_state()),
@@ -215,18 +220,21 @@ impl Sequencer for KatanaSequencer {
         transaction: DeclareTransaction,
         sierra_class: Option<FlattenedSierraClass>,
     ) {
+        let class_hash = transaction.tx().class_hash();
+
+        self.starknet.write().await.handle_transaction(Transaction::AccountTransaction(
+            AccountTransaction::Declare(transaction),
+        ));
+
         if let Some(sierra_class) = sierra_class {
             self.starknet
                 .write()
                 .await
                 .state
-                .class_hash_to_sierra_class
-                .insert(transaction.tx().class_hash(), sierra_class);
+                .classes
+                .entry(class_hash)
+                .and_modify(|r| r.sierra_class = Some(sierra_class));
         }
-
-        self.starknet.write().await.handle_transaction(Transaction::AccountTransaction(
-            AccountTransaction::Declare(transaction),
-        ));
     }
 
     async fn add_invoke_transaction(&self, transaction: InvokeTransaction) {
@@ -518,7 +526,7 @@ pub trait Sequencer {
 
     async fn mut_starknet(&self) -> RwLockWriteGuard<'_, StarknetWrapper>;
 
-    async fn state(&self, block_id: &BlockId) -> SequencerResult<DictStateReader>;
+    async fn state(&self, block_id: &BlockId) -> SequencerResult<MemDb>;
 
     async fn chain_id(&self) -> ChainId;
 
