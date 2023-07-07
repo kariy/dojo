@@ -1,5 +1,5 @@
 pub mod api;
 pub mod contract;
-pub mod local;
+pub mod contract;
 pub mod provider;
 pub mod types;

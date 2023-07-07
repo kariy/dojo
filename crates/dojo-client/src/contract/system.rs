@@ -1,4 +1,4 @@
-use dojo_world::manifest::Dependency;
+use dojo_types::system::Dependency;
 use starknet::accounts::ConnectedAccount;
 use starknet::core::types::{BlockId, FieldElement, FunctionCall, InvokeTransactionResult};
 use starknet::core::utils::{
@@ -115,10 +115,8 @@ impl<'a, P: Provider + Sync> SystemReader<'a, P> {
             .call(
                 FunctionCall {
                     contract_address: world.address,
-                    calldata: vec![
-                        cairo_short_string_to_felt(&name)
-                            .map_err(SystemReaderError::CairoShortStringToFeltError)?,
-                    ],
+                    calldata: vec![cairo_short_string_to_felt(&name)
+                        .map_err(SystemReaderError::CairoShortStringToFeltError)?],
                     entry_point_selector: get_selector_from_name("system").unwrap(),
                 },
                 block_id,
@@ -175,8 +173,7 @@ impl<'a, P: Provider + Sync> SystemReader<'a, P> {
 
             dependencies.push(Dependency {
                 name: parse_cairo_short_string(&chunk[0])
-                    .map_err(SystemReaderError::ParseCairoShortStringError)?
-                    .into(),
+                    .map_err(SystemReaderError::ParseCairoShortStringError)?,
                 read: !is_write,
                 write: is_write,
             });
