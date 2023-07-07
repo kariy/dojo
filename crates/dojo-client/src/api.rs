@@ -1,4 +1,4 @@
-use dojo_world::manifest::Dependency;
+use dojo_types::system::Dependency;
 use starknet::core::types::InvokeTransactionResult;
 use starknet_crypto::FieldElement;
 
