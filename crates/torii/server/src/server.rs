@@ -120,14 +120,14 @@ async fn spawn(
 
             std::future::ready(Ok::<_, Infallible>(tower::service_fn(
                 move |mut req: hyper::Request<hyper::Body>| {
-                    let mut path_iter = req.uri().path().split('/').skip(1);
+                    let mut path_iter = req.uri().path().split('/').skip(1).peekable();
 
                     // check the base path
-                    match path_iter.next() {
+                    match path_iter.peek() {
                         // There's a bug in tonic client where the URI path is not respected in
                         // `Endpoint`, but this issue doesn't exist if `torii-client` is compiled to
                         // `wasm32-unknown-unknown`. See: https://github.com/hyperium/tonic/issues/1314
-                        Some("grpc") => {
+                        Some(&"grpc") => {
                             let grpc_method = path_iter.collect::<Vec<_>>().join("/");
                             *req.uri_mut() =
                                 Uri::from_str(&format!("/{grpc_method}")).expect("valid uri");
@@ -141,13 +141,19 @@ async fn spawn(
                             })
                         }
 
-                        _ => Either::Left({
-                            let res = warp.call(req);
-                            Box::pin(async move {
-                                let res = res.await.map(|res| res.map(EitherBody::Left))?;
-                                Ok::<_, Error>(res)
+                        _ => {
+                            let grpc_method = path_iter.collect::<Vec<_>>().join("/");
+                            *req.uri_mut() =
+                                Uri::from_str(&format!("/{grpc_method}")).expect("valid uri");
+
+                            Either::Left({
+                                let res = tonic.call(req);
+                                Box::pin(async move {
+                                    let res = res.await.map(|res| res.map(EitherBody::Left))?;
+                                    Ok::<_, Error>(res)
+                                })
                             })
-                        }),
+                        }
                     }
                 },
             )))

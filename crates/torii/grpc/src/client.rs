@@ -95,14 +95,14 @@ impl WorldClient {
 pub struct EntityUpdateStreaming(
     MapOk<
         tonic::Streaming<SubscribeEntitiesResponse>,
-        Box<dyn Fn(SubscribeEntitiesResponse) -> MaybePendingStateUpdate>,
+        Box<dyn Fn(SubscribeEntitiesResponse) -> MaybePendingStateUpdate + Send>,
     >,
 );
 
 impl Stream for EntityUpdateStreaming {
     type Item = <MapOk<
         tonic::Streaming<SubscribeEntitiesResponse>,
-        Box<dyn Fn(SubscribeEntitiesResponse) -> MaybePendingStateUpdate>,
+        Box<dyn Fn(SubscribeEntitiesResponse) -> MaybePendingStateUpdate + Send>,
     > as Stream>::Item;
 
     fn poll_next(
