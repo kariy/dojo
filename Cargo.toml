@@ -15,6 +15,7 @@ members = [
   "crates/katana/executor",
   "crates/katana/primitives",
   "crates/katana/rpc",
+  "crates/katana/rpc/rpc-api",
   "crates/katana/rpc/rpc-types",
   "crates/katana/rpc/rpc-types-builder",
   "crates/katana/runner",
