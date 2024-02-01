@@ -1,24 +1,20 @@
 mod transaction;
 
-use crate::{ExecutionConfig, LOG_TARGET};
-
 use cairo_lang_sierra::program::Program as SierraProgram;
 use katana_primitives::contract::FlattenedSierraClass;
 use katana_primitives::transaction::ExecutableTxWithHash;
-use sir::{
-    definitions::block_context::BlockContext,
-    execution::TransactionExecutionInfo,
-    services::api::contract_classes::compiled_class::CompiledClass,
-    state::{
-        cached_state::CachedState,
-        contract_class_cache::{ContractClassCache, NullContractClassCache},
-        state_api::StateReader,
-    },
-    transaction::{
-        error::TransactionError, Declare as DeclareV1, DeclareV2, DeployAccount, InvokeFunction,
-    },
-};
+use sir::definitions::block_context::BlockContext;
+use sir::execution::TransactionExecutionInfo;
+use sir::services::api::contract_classes::compiled_class::CompiledClass;
+use sir::state::cached_state::CachedState;
+use sir::state::contract_class_cache::{ContractClassCache, NullContractClassCache};
+use sir::state::state_api::StateReader;
+use sir::transaction::error::TransactionError;
+use sir::transaction::{Declare as DeclareV1, DeclareV2, DeployAccount, InvokeFunction};
 use tracing::{trace, warn};
+
+use self::transaction::SIRTx;
+use crate::{ExecutionConfig, LOG_TARGET};
 
 pub type TxExecutionResult = Result<TransactionExecutionInfo, TransactionError>;
 
@@ -60,7 +56,7 @@ where
 
         match result {
             Ok(ref res) => {
-                if let Some(revert_error) = &res.revert_error {
+                if let Some(error) = &res.revert_error {
                     trace!(target: LOG_TARGET, "execution reverted");
                 }
 

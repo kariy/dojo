@@ -61,8 +61,20 @@ mod tests {
 
     use std::fs;
 
+    use cairo_lang_sierra::program::Program;
+    use cairo_lang_starknet::contract_class::ContractClass;
+
     use crate::init_db;
     use crate::version::{default_version_file_path, get_db_version, CURRENT_DB_VERSION};
+
+    #[test]
+    fn compress_contract() {
+        let class: ContractClass =
+            serde_json::from_str(include_str!("../benches/artifacts/dojo_world_240.json")).unwrap();
+        let program = class.extract_sierra_program().unwrap();
+        let bytes = postcard::to_stdvec(&program).unwrap();
+        let _class: Program = postcard::from_bytes(&bytes).unwrap();
+    }
 
     #[test]
     fn initialize_db_in_empty_dir() {

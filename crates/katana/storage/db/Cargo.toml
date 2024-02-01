@@ -16,6 +16,8 @@ serde.workspace = true
 serde_json.workspace = true
 tempfile = { version = "3.8.1", optional = true }
 thiserror.workspace = true
+cairo-lang-starknet.workspace = true
+cairo-lang-sierra.workspace=  true
 
 blockifier.workspace = true
 cairo-vm.workspace = true
