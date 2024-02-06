@@ -1060,6 +1060,7 @@ dependencies = [
  "rustc-hash",
  "shlex",
  "syn 2.0.48",
+ "which 4.4.2",
 ]
 
 [[package]]
@@ -1405,7 +1406,7 @@ source = "git+https://github.com/cartridge-gg/cainome?tag=v0.2.2#46c9fa734b39663
 dependencies = [
  "quote",
  "serde_json",
- "starknet",
+ "starknet 0.8.0",
  "syn 2.0.48",
  "thiserror",
 ]
@@ -1417,7 +1418,7 @@ source = "git+https://github.com/cartridge-gg/cainome?rev=950e487#950e4871b735a1
 dependencies = [
  "quote",
  "serde_json",
- "starknet",
+ "starknet 0.8.0",
  "syn 2.0.48",
  "thiserror",
 ]
@@ -1433,7 +1434,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "serde_json",
- "starknet",
+ "starknet 0.8.0",
  "syn 2.0.48",
  "thiserror",
 ]
@@ -1449,7 +1450,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "serde_json",
- "starknet",
+ "starknet 0.8.0",
  "syn 2.0.48",
  "thiserror",
 ]
@@ -2097,8 +2098,8 @@ version = "0.9.1"
 source = "git+https://github.com/lambdaclass/cairo-vm?rev=7af00641014f295d820cbc6417714d6470823440#7af00641014f295d820cbc6417714d6470823440"
 dependencies = [
  "anyhow",
- "ark-ff",
- "ark-std",
+ "ark-ff 0.4.2",
+ "ark-std 0.4.0",
  "bincode 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitvec",
  "cairo-lang-casm",
@@ -2117,7 +2118,7 @@ dependencies = [
  "rand",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.8",
  "sha3",
  "starknet-crypto 0.6.1",
  "starknet-types-core",
@@ -3708,6 +3709,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ffccbb6966c05b32ef8fbac435df276c4ae4d3dc55a8cd0eb9745e6c12f546a"
 dependencies = [
  "heck 0.4.1",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.48",
+]
+
+[[package]]
+name = "enum-ordinalize"
+version = "4.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fea0dcfa4e54eeb516fe454635a95753ddd39acda650ce703031c6973e315dd5"
+dependencies = [
+ "enum-ordinalize-derive",
+]
+
+[[package]]
+name = "enum-ordinalize-derive"
+version = "4.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d28318a75d4aead5c4db25382e8ef717932d0346600cacae6357eb5941bc5ff"
+dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.48",
@@ -6948,7 +6969,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sozo",
- "starknet",
+ "starknet 0.8.0",
  "tokio",
  "url",
 ]
@@ -7711,7 +7732,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "regex-lite",
- "semver",
+ "semver 1.0.20",
 ]
 
 [[package]]
@@ -10503,7 +10524,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "starknet",
+ "starknet 0.8.0",
  "starknet_api",
  "thiserror",
  "tokio",
@@ -10619,6 +10640,7 @@ version = "1.9.0"
 source = "git+https://github.com/software-mansion/scarb?tag=v2.4.0#cba988e685f2f9b07a8ea0b5f056009f91c6c9ed"
 dependencies = [
  "camino",
+ "derive_builder 0.12.0",
  "semver 1.0.20",
  "serde",
  "serde_json",
@@ -10632,7 +10654,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf68e81d9cb0b64c94e6c00e5124f27e3ecfc5d33d4cd7043a15f723be90ff9d"
 dependencies = [
  "camino",
- "derive_builder",
  "semver 1.0.20",
  "serde",
  "serde_json",
@@ -11810,8 +11831,28 @@ version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c5d2964612f0ccd0a700279e33cfc98d6db04f64645ff834f3b7ec422142d7a"
 dependencies = [
- "starknet-core",
+ "starknet-core 0.9.0",
  "syn 2.0.48",
+]
+
+[[package]]
+name = "starknet-providers"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbbfccb46a8969fb3ac803718d9d8270cff4eed5b7f6b9ba234875ad2cc997c5"
+dependencies = [
+ "async-trait",
+ "auto_impl",
+ "ethereum-types",
+ "flate2",
+ "log",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "starknet-core 0.5.1",
+ "thiserror",
+ "url",
 ]
 
 [[package]]
