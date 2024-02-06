@@ -24,6 +24,11 @@ tokio.workspace = true
 # starknet_in_rust deps
 cairo-lang-sierra = { workspace = true, optional = true }
 
+[dependencies.postcard]
+default-features = false
+features = [ "use-std" ]
+version = "1.0.8"
+
 [dependencies.serde_json]
 optional = true
 workspace = true
@@ -32,8 +37,9 @@ features = [ "arbitrary_precision", "raw_value" ]
 [dependencies.sir]
 optional = true
 package = "starknet_in_rust"
-git = "https://github.com/lambdaclass/starknet_in_rust"
-rev = "0eb507656834cd68f3f1ecbb238dadcc50c72b57"
+path = "../../../../../../tmp/starknet_in_rust/"
+# git = "https://github.com/lambdaclass/starknet_in_rust"
+# rev = "0eb507656834cd68f3f1ecbb238dadcc50c72b57"
 
 [features]
 default = [ "native" ]

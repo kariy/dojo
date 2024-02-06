@@ -31,3 +31,11 @@ pub fn parse_compiled_class_v0(class: &str) -> Result<CompiledContractClassV0, s
 pub fn parse_sierra_class(class: &str) -> Result<SierraClass, serde_json::Error> {
     serde_json::from_str(class)
 }
+
+#[test]
+fn serde() {
+    let file = BufReader::new(std::fs::File::open("contracts/compiled/erc20.json").unwrap());
+    let a: starknet_api::deprecated_contract_class::ContractClass =
+        serde_json::from_reader(file).unwrap();
+    let b = serde_json::to_string(&a).unwrap();
+}

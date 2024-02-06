@@ -3,6 +3,7 @@ use katana_primitives::contract::{ContractAddress, GenericContractInfo};
 use katana_primitives::receipt::Receipt;
 use katana_primitives::transaction::Tx;
 use katana_primitives::FieldElement;
+use postcard;
 
 use super::{Compress, Decompress};
 use crate::error::CodecError;

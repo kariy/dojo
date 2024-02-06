@@ -196,10 +196,15 @@ tables! {
     Receipts: (TxNumber) => Receipt,
     /// Store compiled classes
     CompiledClassHashes: (ClassHash) => CompiledClassHash,
+
+
     /// Store compiled contract classes according to its compiled class hash
+    // CompiledContractClasses: (ClassHash) => StoredContractClass,
     CompiledContractClasses: (ClassHash) => StoredContractClass,
     /// Store Sierra classes according to its class hash
     SierraClasses: (ClassHash) => FlattenedSierraClass,
+
+
     /// Store contract information according to its contract address
     ContractInfo: (ContractAddress) => GenericContractInfo,
     /// Store contract storage

@@ -2,6 +2,7 @@ mod transaction;
 
 use cairo_lang_sierra::program::Program as SierraProgram;
 use katana_primitives::contract::FlattenedSierraClass;
+use katana_primitives::genesis::constant::DEFAULT_OZ_ACCOUNT_CONTRACT;
 use katana_primitives::transaction::ExecutableTxWithHash;
 use sir::definitions::block_context::BlockContext;
 use sir::execution::TransactionExecutionInfo;
@@ -11,6 +12,8 @@ use sir::state::contract_class_cache::{ContractClassCache, NullContractClassCach
 use sir::state::state_api::StateReader;
 use sir::transaction::error::TransactionError;
 use sir::transaction::{Declare as DeclareV1, DeclareV2, DeployAccount, InvokeFunction};
+use sir::CasmContractClass;
+use starknet::core::types::ContractClass;
 use tracing::{trace, warn};
 
 use self::transaction::SIRTx;
@@ -82,5 +85,22 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         todo!()
+    }
+}
+
+#[test]
+fn serde() {
+    let sierra = DEFAULT_OZ_ACCOUNT_CONTRACT.clone();
+    let flattened = ContractClass::Sierra(sierra.flatten().unwrap());
+
+    let class = CompiledClass::from(flattened);
+
+    if let CompiledClass::Casm { casm, sierra: Some(s) } = class {
+        // let serialized = serde_json::to_vec(&casm).unwrap();
+        let serialized = postcard::to_stdvec(&casm).unwrap();
+        // let _: CasmContractClass = serde_json::from_slice(&serialized).unwrap();
+        let _: CasmContractClass = postcard::from_bytes(&serialized).unwrap();
+    } else {
+        panic!("expected CompiledClass::Sierra");
     }
 }
