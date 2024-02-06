@@ -5,8 +5,8 @@ use derive_more::{Deref, DerefMut};
 use ethers::types::U256;
 use rand::rngs::SmallRng;
 use rand::{RngCore, SeedableRng};
-use serde::Serialize;
-use starknet::core::serde::unsigned_field_element::UfeHex;
+use serde::{Deserialize, Serialize};
+use starknet::core::serde::unsigned_field_element::{UfeHex, UfeHexOption};
 use starknet::core::utils::get_contract_address;
 use starknet::signers::SigningKey;
 
@@ -15,7 +15,7 @@ use crate::contract::{ClassHash, ContractAddress, StorageKey, StorageValue};
 use crate::FieldElement;
 
 /// Represents a contract allocation in the genesis block.
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum GenesisAllocation {
     /// Account contract
@@ -34,15 +34,15 @@ impl GenesisAllocation {
     }
 
     /// Get the contract class hash.
-    pub fn class_hash(&self) -> ClassHash {
+    pub fn class_hash(&self) -> Option<ClassHash> {
         match self {
             Self::Contract(contract) => contract.class_hash,
-            Self::Account(account) => account.class_hash(),
+            Self::Account(account) => Some(account.class_hash()),
         }
     }
 
     /// Get the balance to be allocated to this contract.
-    pub fn balance(&self) -> U256 {
+    pub fn balance(&self) -> Option<U256> {
         match self {
             Self::Contract(contract) => contract.balance,
             Self::Account(account) => account.balance(),
@@ -67,7 +67,7 @@ impl GenesisAllocation {
 }
 
 /// Genesis allocation for account contract.
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum GenesisAccountAlloc {
     /// Account contract with hidden private key.
@@ -92,7 +92,7 @@ impl GenesisAccountAlloc {
         }
     }
 
-    pub fn balance(&self) -> U256 {
+    pub fn balance(&self) -> Option<U256> {
         match self {
             Self::Account(account) => account.balance,
             Self::DevAccount(account) => account.balance,
@@ -123,13 +123,13 @@ impl GenesisAccountAlloc {
 
 /// A generic non-account contract.
 #[serde_with::serde_as]
-#[derive(Debug, Default, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GenesisContractAlloc {
     /// The class hash of the contract.
-    #[serde_as(as = "UfeHex")]
-    pub class_hash: ClassHash,
+    #[serde_as(as = "UfeHexOption")]
+    pub class_hash: Option<ClassHash>,
     /// The amount of the fee token allocated to the contract.
-    pub balance: U256,
+    pub balance: Option<U256>,
     /// The initial nonce of the contract.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nonce: Option<FieldElement>,
@@ -141,7 +141,7 @@ pub struct GenesisContractAlloc {
 /// Used mainly for development purposes where the account info including the
 /// private key is printed to the console.
 #[serde_with::serde_as]
-#[derive(Debug, Default, Clone, Serialize, PartialEq, Eq, Deref, DerefMut)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq, Deref, DerefMut)]
 pub struct DevGenesisAccount {
     /// The private key associated with the public key of the account.
     #[serde_as(as = "UfeHex")]
@@ -168,14 +168,14 @@ impl DevGenesisAccount {
         balance: U256,
     ) -> (ContractAddress, Self) {
         let (addr, mut account) = Self::new(private_key, class_hash);
-        account.balance = balance;
+        account.balance = Some(balance);
         (addr, account)
     }
 }
 
 /// Account contract allocated in the genesis block.
 #[serde_with::serde_as]
-#[derive(Debug, Default, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GenesisAccount {
     /// The public key associated with the account for validation.
     #[serde_as(as = "UfeHex")]
@@ -184,7 +184,7 @@ pub struct GenesisAccount {
     #[serde_as(as = "UfeHex")]
     pub class_hash: ClassHash,
     /// The amount of the fee token allocated to the account.
-    pub balance: U256,
+    pub balance: Option<U256>,
     /// The initial nonce of the account.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nonce: Option<FieldElement>,
@@ -211,7 +211,7 @@ impl GenesisAccount {
         balance: U256,
     ) -> (ContractAddress, Self) {
         let (address, account) = Self::new(public_key, class_hash);
-        (address, Self { balance, ..account })
+        (address, Self { balance: Some(balance), ..account })
     }
 }
 
@@ -224,7 +224,7 @@ impl From<DevGenesisAccount> for GenesisAllocation {
 /// A helper type for allocating dev accounts in the genesis block.
 #[must_use]
 pub struct DevAllocationsGenerator {
-    total: u8,
+    total: u16,
     seed: [u8; 32],
     balance: U256,
     class_hash: FieldElement,
@@ -234,7 +234,7 @@ impl DevAllocationsGenerator {
     /// Create a new dev account generator for `total` number of accounts.
     ///
     /// This will return a [DevAllocationsGenerator] with the default parameters.
-    pub fn new(total: u8) -> Self {
+    pub fn new(total: u16) -> Self {
         Self {
             total,
             seed: [0u8; 32],
