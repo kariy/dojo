@@ -1,6 +1,8 @@
 use std::fmt;
 
+use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use derive_more::Deref;
+use serde::{Deserialize, Serialize};
 use starknet::core::utils::normalize_address;
 
 use crate::FieldElement;
@@ -69,3 +71,27 @@ pub type CompiledContractClassV0 = ::blockifier::execution::contract_class::Cont
 /// V1 of the compiled contract class
 #[cfg(feature = "blockifier")]
 pub type CompiledContractClassV1 = ::blockifier::execution::contract_class::ContractClassV1;
+
+pub type DeprecatedCompiledClass = ::starknet_api::deprecated_contract_class::ContractClass;
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct SierraProgram {
+    pub program: cairo_lang_sierra::program::Program,
+    pub entry_points_by_type: cairo_lang_starknet::contract_class::ContractEntryPoints,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct SierraCompiledClass {
+    pub casm: CasmContractClass,
+    pub sierra: SierraProgram,
+}
+
+/// Executable contract class
+#[derive(Debug, Clone, Eq, PartialEq, derive_more::From)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum CompiledClass {
+    Class(SierraCompiledClass),
+    Deprecated(DeprecatedCompiledClass),
+}

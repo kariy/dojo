@@ -42,6 +42,10 @@ criterion = "0.5.1"
 starknet.workspace = true
 tempfile = "3.8.1"
 
+[dev-dependencies.sir]
+package = "starknet_in_rust"
+path = "../../../../../../../tmp/starknet_in_rust/"
+
 [features]
 default = [ "postcard" ]
 postcard = [ "dep:postcard" ]

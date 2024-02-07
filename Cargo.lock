@@ -6808,6 +6808,7 @@ dependencies = [
  "serde_json",
  "starknet",
  "starknet_api",
+ "starknet_in_rust",
  "tempfile",
  "thiserror",
 ]
@@ -6839,6 +6840,7 @@ dependencies = [
  "anyhow",
  "base64 0.21.7",
  "blockifier",
+ "cairo-lang-sierra",
  "cairo-lang-starknet",
  "cairo-vm 0.8.2",
  "derive_more",

@@ -1,7 +1,8 @@
+use crate::models::class_sir;
 use katana_primitives::block::{BlockHash, BlockNumber, FinalityStatus, Header};
 use katana_primitives::contract::{
-    ClassHash, CompiledClassHash, ContractAddress, FlattenedSierraClass, GenericContractInfo,
-    StorageKey,
+    ClassHash, CompiledClass, CompiledClassHash, ContractAddress, FlattenedSierraClass,
+    GenericContractInfo, StorageKey,
 };
 use katana_primitives::receipt::Receipt;
 use katana_primitives::transaction::{Tx, TxHash, TxNumber};
@@ -47,7 +48,7 @@ pub enum TableType {
     DupSort,
 }
 
-pub const NUM_TABLES: usize = 22;
+pub const NUM_TABLES: usize = 23;
 
 /// Macro to declare `libmdbx` tables.
 #[macro_export]
@@ -160,6 +161,7 @@ define_tables_enum! {[
     (Receipts, TableType::Table),
     (CompiledClassHashes, TableType::Table),
     (CompiledContractClasses, TableType::Table),
+    (CompiledClasses, TableType::Table),
     (SierraClasses, TableType::Table),
     (ContractInfo, TableType::Table),
     (ContractStorage, TableType::DupSort),
@@ -201,6 +203,9 @@ tables! {
     /// Store compiled contract classes according to its compiled class hash
     // CompiledContractClasses: (ClassHash) => StoredContractClass,
     CompiledContractClasses: (ClassHash) => StoredContractClass,
+
+    /// SIR intergration
+    CompiledClasses: (ClassHash) => CompiledClass,
     /// Store Sierra classes according to its class hash
     SierraClasses: (ClassHash) => FlattenedSierraClass,
 

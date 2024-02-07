@@ -1,17 +1,17 @@
-use cairo_lang_starknet::contract_class::ContractClass;
+use cairo_lang_starknet::contract_class::{ContractClass, ContractEntryPoints};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use katana_db::codecs::{Compress, Decompress};
 use katana_db::models::class::StoredContractClass;
 use katana_primitives::contract::CompiledContractClass;
-use katana_primitives::utils::class::parse_compiled_class;
+use katana_primitives::utils::class::{parse_compiled_class, parse_sierra_class};
+use sir::CasmContractClass;
 
 // fn compress_contract(contract: CompiledContractClass) -> Vec<u8> {
 //     StoredContractClass::from(contract).compress()
 // }
 
-fn compress_contract(contract: ContractClass) -> ContractClass {
-    let bytes = postcard::to_stdvec(&contract).unwrap();
-    postcard::from_bytes(&bytes).unwrap()
+fn get_program(bytes: Vec<u8>) -> ContractEntryPoints {
+    todo!()
 }
 // fn decompress_contract(compressed: &[u8]) -> ContractClass {
 //     postcard::from_bytes(compressed).unwrap()
@@ -24,13 +24,17 @@ fn compress_contract(contract: ContractClass) -> ContractClass {
 fn compress_contract_with_main_codec(c: &mut Criterion) {
     // let class = parse_compiled_class(include_str!("./artifacts/dojo_world_240.json")).unwrap();
 
-    let class: ContractClass =
-        serde_json::from_str(include_str!("./artifacts/dojo_world_240.json")).unwrap();
+    let class = parse_sierra_class(include_str!("./artifacts/dojo_world_240.json")).unwrap();
+    let class: ContractClass = serde_json::from_slice(bytes).unwrap();
+    // let program = class.extract_sierra_program().unwrap();
+    // let entries = class.entry_points_by_type.clone();
+    // let bytes = postcard::to_stdvec(&entries).unwrap();
+    // let bytes = postcard::to_stdvec(&program).unwrap();
 
-    // let class = CasmContractClass::from_contract_class(class, true).unwrap();
+    let class = CasmContractClass::from_contract_class(class, true).unwrap();
 
     c.bench_function("compress world contract", |b| {
-        b.iter_with_large_drop(|| compress_contract(black_box(class.clone())))
+        b.iter_with_large_drop(|| get_program(black_box(class.clone())))
     });
 }
 

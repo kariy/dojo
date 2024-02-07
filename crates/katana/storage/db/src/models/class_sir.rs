@@ -1,38 +1,17 @@
-use crate::codecs::Compress;
-use starknet_api::deprecated_contract_class::ContractClass as DeprecatedContractClass;
+use katana_primitives::contract::{CompiledClass, DeprecatedCompiledClass};
 
-pub enum StoredContractClass {
-    Deprecated(DeprecatedContractClass),
-    Sierra {
-        program: cairo_lang_sierra::program::Program,
-        entry_points_by_type: cairo_lang_starknet::contract_class::ContractEntryPoints,
-    },
-}
+use crate::codecs::{Compress, Decompress};
+use crate::error::CodecError;
 
-pub struct StoredContractEntryPoint {
-    pub selector: num_bigint::BigUint,
-    pub function_idx: usize,
-}
-
-pub struct StoredContractEntryPoints {
-    pub external: Vec<StoredContractEntryPoint>,
-    pub l1_handler: Vec<StoredContractEntryPoint>,
-    pub constructor: Vec<StoredContractEntryPoint>,
-}
-
-impl Compress for StoredContractClass {
-    type Compressed = Vec<u8>;
-    fn compress(self) -> Self::Compressed {
-        match self {
-            StoredContractClass::Deprecated(c) => c.compress(),
-            StoredContractClass::Sierra { program, entry_points_by_type } => todo!(),
-        }
-    }
-}
-
-impl Compress for DeprecatedContractClass {
+impl Compress for CompiledClass {
     type Compressed = Vec<u8>;
     fn compress(self) -> Self::Compressed {
         serde_json::to_vec(&self).unwrap()
+    }
+}
+
+impl Decompress for CompiledClass {
+    fn decompress<B: AsRef<[u8]>>(bytes: B) -> Result<Self, CodecError> {
+        serde_json::from_slice(bytes.as_ref()).map_err(|e| CodecError::Decode(e.to_string()))
     }
 }

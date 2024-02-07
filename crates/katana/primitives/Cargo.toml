@@ -24,6 +24,7 @@ thiserror.workspace = true
 
 blockifier.workspace = true
 cairo-lang-starknet.workspace = true
+cairo-lang-sierra.workspace = true
 flate2.workspace = true
 starknet_api.workspace = true
 
@@ -32,6 +33,7 @@ ethers = "2.0.11"
 [features]
 default = [ "blockifier", "rpc", "serde" ]
 
+cairo-native = [ ]
 blockifier = [  ]
 rpc = [  ]
 serde = [  ]
