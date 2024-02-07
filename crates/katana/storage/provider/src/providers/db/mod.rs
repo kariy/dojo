@@ -15,10 +15,10 @@ use katana_db::models::storage::{
 };
 use katana_db::tables::{
     BlockBodyIndices, BlockHashes, BlockNumbers, BlockStatusses, ClassDeclarationBlock,
-    ClassDeclarations, CompiledClassHashes, CompiledContractClasses, ContractClassChanges,
-    ContractInfo, ContractInfoChangeSet, ContractStorage, DupSort, Headers, NonceChanges, Receipts,
-    SierraClasses, StorageChangeSet, StorageChanges, Table, Transactions, TxBlocks, TxHashes,
-    TxNumbers,
+    ClassDeclarations, CompiledClassHashes, CompiledClasses, CompiledContractClasses,
+    ContractClassChanges, ContractInfo, ContractInfoChangeSet, ContractStorage, DupSort, Headers,
+    NonceChanges, Receipts, SierraClasses, StorageChangeSet, StorageChanges, Table, Transactions,
+    TxBlocks, TxHashes, TxNumbers,
 };
 use katana_db::utils::KeyValue;
 use katana_primitives::block::{
@@ -593,7 +593,7 @@ impl BlockWriter for DbProvider {
             }
 
             for (hash, compiled_class) in states.declared_compiled_classes {
-                db_tx.put::<CompiledContractClasses>(hash, compiled_class.into())?;
+                db_tx.put::<CompiledClasses>(hash, compiled_class)?;
             }
 
             for (class_hash, sierra_class) in states.declared_sierra_classes {
