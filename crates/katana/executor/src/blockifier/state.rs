@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use blockifier::state::cached_state::{CachedState, GlobalContractCache};
 use blockifier::state::errors::StateError;
 use blockifier::state::state_api::StateReader;
-use katana_primitives::contract::FlattenedSierraClass;
+use katana_primitives::contract::{CompiledClass, FlattenedSierraClass};
 use katana_primitives::FieldElement;
 use katana_provider::traits::contract::ContractClassProvider;
 use katana_provider::traits::state::StateProvider;
@@ -141,7 +141,7 @@ where
     fn class(
         &self,
         hash: katana_primitives::contract::ClassHash,
-    ) -> ProviderResult<Option<katana_primitives::contract::CompiledContractClass>> {
+    ) -> ProviderResult<Option<CompiledClass>> {
         let Ok(class) = self.inner().get_compiled_contract_class(&ClassHash(hash.into())) else {
             return Ok(None);
         };

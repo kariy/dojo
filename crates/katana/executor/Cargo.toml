@@ -30,9 +30,9 @@ features = [ "use-std" ]
 version = "1.0.8"
 
 [dependencies.serde_json]
+features = [ "arbitrary_precision", "raw_value" ]
 optional = true
 workspace = true
-features = [ "arbitrary_precision", "raw_value" ]
 
 [dependencies.sir]
 optional = true
@@ -42,7 +42,7 @@ path = "../../../../../../tmp/starknet_in_rust/"
 # rev = "0eb507656834cd68f3f1ecbb238dadcc50c72b57"
 
 [features]
-default = [ "native" ]
+default = [ "blockifier" ]
 
 blockifier = [ "dep:blockifier", "katana-primitives/blockifier" ]
-native = [ "sir/cairo-native", "dep:serde_json", "dep:cairo-lang-sierra" ]
+native = [ "dep:cairo-lang-sierra", "dep:serde_json", "sir/cairo-native" ]
