@@ -150,11 +150,13 @@ fn execute_tx<S: StateReader>(
 ) -> TxExecutionResult {
     let sierra = if let ExecutableTx::Declare(DeclareTxWithClass {
         transaction,
+        compiled_class,
         sierra_class: Some(sierra_class),
-        ..
     }) = tx.as_ref()
     {
-        Some((transaction.class_hash(), sierra_class.clone()))
+        let class_hash = transaction.class_hash();
+        state.compiled_class.write().insert(class_hash, compiled_class.clone());
+        Some((class_hash, sierra_class.clone()))
     } else {
         None
     };

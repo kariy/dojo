@@ -4,6 +4,7 @@ use blockifier::state::cached_state::{CachedState, GlobalContractCache};
 use blockifier::state::errors::StateError;
 use blockifier::state::state_api::StateReader;
 use katana_primitives::contract::{CompiledClass, FlattenedSierraClass};
+use katana_primitives::conversion::blockifier::to_class;
 use katana_primitives::FieldElement;
 use katana_provider::traits::contract::ContractClassProvider;
 use katana_provider::traits::state::StateProvider;
@@ -86,7 +87,7 @@ impl StateReader for StateRefDb {
         if let Some(class) = ContractClassProvider::class(&self.0, class_hash.0.into())
             .map_err(|e| StateError::StateReadError(e.to_string()))?
         {
-            Ok(class)
+            to_class(class).map_err(|e| StateError::StateReadError(e.to_string()))
         } else {
             Err(StateError::UndeclaredClassHash(*class_hash))
         }
@@ -95,6 +96,8 @@ impl StateReader for StateRefDb {
 
 pub struct CachedStateWrapper<S: StateReader> {
     inner: Mutex<CachedState<S>>,
+    pub(crate) compiled_class:
+        RwLock<HashMap<katana_primitives::contract::ClassHash, CompiledClass>>,
     sierra_class: RwLock<HashMap<katana_primitives::contract::ClassHash, FlattenedSierraClass>>,
 }
 
@@ -102,6 +105,7 @@ impl<S: StateReader> CachedStateWrapper<S> {
     pub fn new(db: S) -> Self {
         Self {
             sierra_class: Default::default(),
+            compiled_class: Default::default(),
             inner: Mutex::new(CachedState::new(db, GlobalContractCache::default())),
         }
     }
@@ -142,10 +146,11 @@ where
         &self,
         hash: katana_primitives::contract::ClassHash,
     ) -> ProviderResult<Option<CompiledClass>> {
-        let Ok(class) = self.inner().get_compiled_contract_class(&ClassHash(hash.into())) else {
-            return Ok(None);
-        };
-        Ok(Some(class))
+        // let Ok(class) = self.inner().get_compiled_contract_class(&ClassHash(hash.into())) else {
+        //     return Ok(None);
+        // };
+        // Ok(Some(class))
+        Ok(self.compiled_class.read().get(&hash).cloned())
     }
 
     fn compiled_class_hash_of_class_hash(
