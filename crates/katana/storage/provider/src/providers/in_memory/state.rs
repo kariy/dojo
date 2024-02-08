@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use katana_primitives::block::BlockNumber;
 use katana_primitives::contract::{
-    ClassHash, CompiledClass, CompiledClassHash, CompiledContractClass, ContractAddress,
-    FlattenedSierraClass, GenericContractInfo, Nonce, StorageKey, StorageValue,
+    ClassHash, CompiledClass, CompiledClassHash, ContractAddress, FlattenedSierraClass,
+    GenericContractInfo, Nonce, StorageKey, StorageValue,
 };
 
 use super::cache::{CacheSnapshotWithoutClasses, CacheStateDb, SharedContractClasses};

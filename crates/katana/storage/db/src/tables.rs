@@ -1,4 +1,3 @@
-use crate::models::class_sir;
 use katana_primitives::block::{BlockHash, BlockNumber, FinalityStatus, Header};
 use katana_primitives::contract::{
     ClassHash, CompiledClass, CompiledClassHash, ContractAddress, FlattenedSierraClass,

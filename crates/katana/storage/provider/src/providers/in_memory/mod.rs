@@ -10,8 +10,7 @@ use katana_primitives::block::{
     SealedBlockWithStatus,
 };
 use katana_primitives::contract::{
-    ClassHash, CompiledClass, CompiledClassHash, CompiledContractClass, ContractAddress,
-    FlattenedSierraClass,
+    ClassHash, CompiledClass, CompiledClassHash, ContractAddress, FlattenedSierraClass,
 };
 use katana_primitives::env::BlockEnv;
 use katana_primitives::receipt::Receipt;
