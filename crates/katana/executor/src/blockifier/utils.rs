@@ -229,7 +229,7 @@ pub fn get_state_update_from_cached_state(
 ) -> StateUpdatesWithDeclaredClasses {
     let state_diff = state.inner().to_state_diff();
 
-    let declared_sierra_classes = state.sierra_class().clone();
+    let declared_sierra_classes = state.class_cache.read().sierra.clone();
 
     let declared_compiled_classes =
         state_diff

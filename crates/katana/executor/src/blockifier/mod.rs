@@ -155,7 +155,7 @@ fn execute_tx<S: StateReader>(
     }) = tx.as_ref()
     {
         let class_hash = transaction.class_hash();
-        state.compiled_class.write().insert(class_hash, compiled_class.clone());
+        state.class_cache.write().compiled.insert(class_hash, compiled_class.clone());
         Some((class_hash, sierra_class.clone()))
     } else {
         None
@@ -172,7 +172,7 @@ fn execute_tx<S: StateReader>(
 
     if res.is_ok() {
         if let Some((class_hash, sierra_class)) = sierra {
-            state.sierra_class_mut().insert(class_hash, sierra_class);
+            state.class_cache.write().sierra.insert(class_hash, sierra_class);
         }
     }
 
