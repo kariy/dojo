@@ -421,48 +421,9 @@ impl From<ContractClass> for StoredContractClass {
 #[cfg(test)]
 mod tests {
     use cairo_lang_starknet::casm_contract_class::CasmContractClass;
-    use katana_primitives::contract::CompiledContractClass;
-    use starknet_api::hash::StarkFelt;
-    use starknet_api::stark_felt;
 
     use super::*;
     use crate::codecs::{Compress, Decompress};
-
-    #[test]
-    fn serialize_deserialize_legacy_entry_points() {
-        let non_serde = vec![
-            EntryPoint {
-                offset: EntryPointOffset(0x25f),
-                selector: EntryPointSelector(stark_felt!(
-                    "0x289da278a8dc833409cabfdad1581e8e7d40e42dcaed693fa4008dcdb4963b3"
-                )),
-            },
-            EntryPoint {
-                offset: EntryPointOffset(0x1b2),
-                selector: EntryPointSelector(stark_felt!(
-                    "0x29e211664c0b63c79638fbea474206ca74016b3e9a3dc4f9ac300ffd8bdf2cd"
-                )),
-            },
-            EntryPoint {
-                offset: EntryPointOffset(0x285),
-                selector: EntryPointSelector(stark_felt!(
-                    "0x36fcbf06cd96843058359e1a75928beacfac10727dab22a3972f0af8aa92895"
-                )),
-            },
-        ];
-
-        // convert to serde and back
-        let serde: Vec<SerializableEntryPoint> =
-            non_serde.iter().map(|e| e.clone().into()).collect();
-
-        // convert to json
-        let json = serde_json::to_vec(&serde).unwrap();
-        let serde: Vec<SerializableEntryPoint> = serde_json::from_slice(&json).unwrap();
-
-        let same_non_serde: Vec<EntryPoint> = serde.iter().map(|e| e.clone().into()).collect();
-
-        assert_eq!(non_serde, same_non_serde);
-    }
 
     #[test]
     fn compress_and_decompress_contract_class() {
@@ -471,12 +432,12 @@ mod tests {
                 .unwrap();
 
         let class = CasmContractClass::from_contract_class(class, true).unwrap();
-        let class = CompiledContractClass::V1(ContractClassV1::try_from(class).unwrap());
+        let class = ContractClass::V1(ContractClassV1::try_from(class).unwrap());
 
         let compressed = StoredContractClass::from(class.clone()).compress();
         let decompressed = <StoredContractClass as Decompress>::decompress(compressed).unwrap();
 
-        let actual_class = CompiledContractClass::from(decompressed);
+        let actual_class = ContractClass::from(decompressed);
 
         assert_eq!(class, actual_class);
     }
@@ -488,12 +449,12 @@ mod tests {
         ))
         .unwrap();
 
-        let class = CompiledContractClass::V0(class);
+        let class = ContractClass::V0(class);
 
         let compressed = StoredContractClass::from(class.clone()).compress();
         let decompressed = <StoredContractClass as Decompress>::decompress(compressed).unwrap();
 
-        let actual_class = CompiledContractClass::from(decompressed);
+        let actual_class = ContractClass::from(decompressed);
 
         assert_eq!(class, actual_class);
     }

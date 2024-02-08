@@ -7,8 +7,8 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-katana-primitives = { path = "../primitives" }
-katana-provider = { path = "../storage/provider" }
+katana-primitives = { workspace = true, default-features = false }
+katana-provider.workspace = true
 
 anyhow.workspace = true
 convert_case.workspace = true
@@ -17,6 +17,32 @@ starknet.workspace = true
 tracing.workspace = true
 
 # blockifier deps
-blockifier.workspace = true
+blockifier = { workspace = true, optional = true }
 starknet_api.workspace = true
 tokio.workspace = true
+
+# starknet_in_rust deps
+cairo-lang-sierra = { workspace = true, optional = true }
+
+[dependencies.postcard]
+default-features = false
+features = [ "use-std" ]
+version = "1.0.8"
+
+[dependencies.serde_json]
+features = [ "arbitrary_precision", "raw_value" ]
+optional = true
+workspace = true
+
+[dependencies.sir]
+optional = true
+package = "starknet_in_rust"
+path = "../../../../../../tmp/starknet_in_rust/"
+# git = "https://github.com/lambdaclass/starknet_in_rust"
+# rev = "0eb507656834cd68f3f1ecbb238dadcc50c72b57"
+
+[features]
+default = [ "blockifier" ]
+
+blockifier = [ "dep:blockifier", "katana-primitives/blockifier" ]
+native = [ "dep:cairo-lang-sierra", "dep:serde_json", "sir/cairo-native" ]
