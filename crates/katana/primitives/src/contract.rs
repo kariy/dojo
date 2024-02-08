@@ -61,16 +61,6 @@ pub struct GenericContractInfo {
     pub class_hash: ClassHash,
 }
 
-/// Represents a runnable Starknet contract class (meaning, the program is runnable by the VM).
-#[cfg(feature = "blockifier")]
-pub type CompiledContractClass = ::blockifier::execution::contract_class::ContractClass;
-/// V0 of the compiled contract class
-#[cfg(feature = "blockifier")]
-pub type CompiledContractClassV0 = ::blockifier::execution::contract_class::ContractClassV0;
-/// V1 of the compiled contract class
-#[cfg(feature = "blockifier")]
-pub type CompiledContractClassV1 = ::blockifier::execution::contract_class::ContractClassV1;
-
 pub type DeprecatedCompiledClass = ::starknet_api::deprecated_contract_class::ContractClass;
 
 #[derive(Debug, Clone, Eq, PartialEq)]

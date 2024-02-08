@@ -1,20 +1,11 @@
 use std::collections::{BTreeMap, HashMap};
 use std::io::{self, Read, Write};
 use std::mem;
-use std::str::FromStr;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Context, Result};
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
-use cairo_vm::felt::Felt252;
-use cairo_vm::serde::deserialize_program::{
-    serialize_program_data, ApTracking, Attribute, BuiltinName, DebugInfo, HintParams, Member,
-    OffsetValue, ProgramJson, ValueAddress,
-};
-use cairo_vm::types::instruction::Register;
-use cairo_vm::types::program::Program;
-use cairo_vm::types::relocatable::MaybeRelocatable;
-use serde::{Deserialize, Serialize, Serializer};
-use serde_json::{json, Number};
+use serde::Deserialize;
+use serde_json::json;
 use serde_with::serde_as;
 use starknet::core::serde::unsigned_field_element::UfeHex;
 pub use starknet::core::types::contract::legacy::{LegacyContractClass, LegacyProgram};
@@ -23,23 +14,27 @@ use starknet::core::types::contract::legacy::{
 };
 pub use starknet::core::types::contract::CompiledClass;
 use starknet::core::types::{
-    CompressedLegacyContractClass, ContractClass, LegacyContractEntryPoint, LegacyEntryPointsByType,
+    CompressedLegacyContractClass, ContractClass, FunctionStateMutability, LegacyContractAbiEntry,
+    LegacyContractEntryPoint, LegacyEntryPointsByType, LegacyEventAbiEntry, LegacyEventAbiType,
+    LegacyFunctionAbiEntry, LegacyFunctionAbiType, LegacyStructAbiEntry, LegacyStructAbiType,
+    LegacyStructMember, LegacyTypedParameter,
 };
-use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointType};
+use starknet_api::deprecated_contract_class::{
+    ContractClassAbiEntry, EntryPoint, EntryPointType, TypedParameter,
+};
 
 use crate::contract::{
-    ClassHash, CompiledClassHash, CompiledContractClassV0, DeprecatedCompiledClass,
-    FlattenedSierraClass, SierraCompiledClass, SierraProgram,
+    ClassHash, CompiledClassHash, DeprecatedCompiledClass, FlattenedSierraClass,
+    SierraCompiledClass, SierraProgram,
 };
 use crate::FieldElement;
 
 /// Converts the legacy inner compiled class type [CompiledContractClassV0] into its RPC equivalent
 /// [`ContractClass`].
 pub fn legacy_inner_to_rpc_class(
-    legacy_contract_class: CompiledContractClassV0,
+    legacy_contract_class: DeprecatedCompiledClass,
 ) -> Result<ContractClass> {
-    // Convert [EntryPointType] (blockifier type) into [LegacyEntryPointsByType] (RPC type)
-    fn to_rpc_legacy_entry_points_by_type(
+    fn to_rpc_entry_points(
         entries: &HashMap<EntryPointType, Vec<EntryPoint>>,
     ) -> Result<LegacyEntryPointsByType> {
         fn collect_entry_points(
@@ -48,7 +43,7 @@ pub fn legacy_inner_to_rpc_class(
         ) -> Result<Vec<LegacyContractEntryPoint>> {
             Ok(entries
                 .get(entry_point_type)
-                .ok_or(anyhow!("Missing {entry_point_type:?} entry point",))?
+                .context(format!("Missing {entry_point_type:?} entry point"))?
                 .iter()
                 .map(|e| LegacyContractEntryPoint {
                     offset: e.offset.0 as u64,
@@ -64,16 +59,84 @@ pub fn legacy_inner_to_rpc_class(
         })
     }
 
-    let entry_points_by_type =
-        to_rpc_legacy_entry_points_by_type(&legacy_contract_class.entry_points_by_type)?;
+    fn convert_typed_param(param: Vec<TypedParameter>) -> Vec<LegacyTypedParameter> {
+        param
+            .into_iter()
+            .map(|param| LegacyTypedParameter { name: param.name, r#type: param.r#type })
+            .collect()
+    }
 
-    let compressed_program = compress_legacy_program_data(legacy_contract_class.program.clone())?;
+    fn convert_abi_entry(abi: ContractClassAbiEntry) -> LegacyContractAbiEntry {
+        match abi {
+            ContractClassAbiEntry::Function(a) => {
+                LegacyContractAbiEntry::Function(LegacyFunctionAbiEntry {
+                    name: a.name,
+                    r#type: LegacyFunctionAbiType::Function,
+                    inputs: convert_typed_param(a.inputs),
+                    outputs: convert_typed_param(a.outputs),
+                    state_mutability: a.state_mutability.map(|_| FunctionStateMutability::View),
+                })
+            }
 
-    Ok(ContractClass::Legacy(CompressedLegacyContractClass {
-        program: compressed_program,
-        abi: None,
-        entry_points_by_type,
-    }))
+            ContractClassAbiEntry::Event(a) => LegacyContractAbiEntry::Event(LegacyEventAbiEntry {
+                name: a.name,
+                r#type: LegacyEventAbiType::Event,
+                data: convert_typed_param(a.data),
+                keys: convert_typed_param(a.keys),
+            }),
+
+            ContractClassAbiEntry::Constructor(a) => {
+                LegacyContractAbiEntry::Function(LegacyFunctionAbiEntry {
+                    name: a.name,
+                    r#type: LegacyFunctionAbiType::Constructor,
+                    inputs: convert_typed_param(a.inputs),
+                    outputs: convert_typed_param(a.outputs),
+                    state_mutability: a.state_mutability.map(|_| FunctionStateMutability::View),
+                })
+            }
+
+            ContractClassAbiEntry::Struct(a) => {
+                LegacyContractAbiEntry::Struct(LegacyStructAbiEntry {
+                    name: a.name,
+                    size: a.size as u64,
+                    r#type: LegacyStructAbiType::Struct,
+                    members: a
+                        .members
+                        .into_iter()
+                        .map(|m| LegacyStructMember {
+                            name: m.param.name,
+                            offset: m.offset as u64,
+                            r#type: m.param.r#type,
+                        })
+                        .collect(),
+                })
+            }
+
+            ContractClassAbiEntry::L1Handler(a) => {
+                LegacyContractAbiEntry::Function(LegacyFunctionAbiEntry {
+                    name: a.name,
+                    r#type: LegacyFunctionAbiType::L1Handler,
+                    inputs: convert_typed_param(a.inputs),
+                    outputs: convert_typed_param(a.outputs),
+                    state_mutability: a.state_mutability.map(|_| FunctionStateMutability::View),
+                })
+            }
+        }
+    }
+
+    fn convert_abi(abi: Option<Vec<ContractClassAbiEntry>>) -> Option<Vec<LegacyContractAbiEntry>> {
+        if let Some(abi) = abi {
+            Some(abi.into_iter().map(convert_abi_entry).collect())
+        } else {
+            None
+        }
+    }
+
+    let abi = convert_abi(legacy_contract_class.abi);
+    let program = compress_legacy_program_data(legacy_contract_class.program.clone())?;
+    let entry_points_by_type = to_rpc_entry_points(&legacy_contract_class.entry_points_by_type)?;
+
+    Ok(ContractClass::Legacy(CompressedLegacyContractClass { abi, program, entry_points_by_type }))
 }
 
 /// Convert the given [`FlattenedSierraClass`] into the inner compiled class type
@@ -108,7 +171,7 @@ pub fn compiled_class_hash_from_flattened_sierra_class(
 
 /// Converts a legacy RPC compiled contract class [CompressedLegacyContractClass] type to the inner
 /// compiled class type [CompiledContractClass] along with its class hash.
-pub fn legacy_rpc_to_inner_compiled_class(
+pub fn legacy_rpc_to_compiled_class(
     compressed_legacy_contract: &CompressedLegacyContractClass,
 ) -> Result<(ClassHash, crate::contract::CompiledClass)> {
     let class_json = json!({
@@ -142,85 +205,14 @@ fn rpc_to_cairo_contract_class(
     })
 }
 
-fn compress_legacy_program_data(legacy_program: Program) -> Result<Vec<u8>, io::Error> {
-    fn felt_as_dec_str<S: Serializer>(
-        value: &Option<Felt252>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
-        let dec_str = format!("{}", value.clone().unwrap_or_default().to_signed_felt());
-        let number = Number::from_str(&dec_str).expect("valid number");
-        number.serialize(serializer)
-    }
+fn compress_legacy_program_data(
+    legacy_program: starknet_api::deprecated_contract_class::Program,
+) -> Result<Vec<u8>, io::Error> {
+    let buffer = serde_json::to_vec(&legacy_program)?;
 
-    fn value_address_in_str_format<S: Serializer>(
-        value_address: &ValueAddress,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(&parse_value_address_to_str(value_address.clone()))
-    }
-
-    fn zero_if_none<S: Serializer>(pc: &Option<usize>, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_u64(pc.as_ref().map_or(0, |x| *x as u64))
-    }
-
-    #[derive(Serialize)]
-    struct Identifier {
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pc: Option<usize>,
-        #[serde(rename = "type")]
-        #[serde(skip_serializing_if = "Option::is_none")]
-        type_: Option<String>,
-        #[serde(serialize_with = "felt_as_dec_str")]
-        #[serde(skip_serializing_if = "Option::is_none")]
-        value: Option<Felt252>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        full_name: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        members: Option<HashMap<String, Member>>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        cairo_type: Option<String>,
-    }
-
-    #[derive(Serialize)]
-    struct Reference {
-        ap_tracking_data: ApTracking,
-        #[serde(serialize_with = "zero_if_none")]
-        pc: Option<usize>,
-        #[serde(rename(serialize = "value"))]
-        #[serde(serialize_with = "value_address_in_str_format")]
-        value_address: ValueAddress,
-    }
-
-    #[derive(Serialize)]
-    struct ReferenceManager {
-        references: Vec<Reference>,
-    }
-
-    #[derive(Serialize)]
-    struct SerializableProgramJson {
-        prime: String,
-        builtins: Vec<BuiltinName>,
-        #[serde(serialize_with = "serialize_program_data")]
-        #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
-        data: Vec<MaybeRelocatable>,
-        identifiers: HashMap<String, Identifier>,
-        hints: HashMap<usize, Vec<HintParams>>,
-        reference_manager: ReferenceManager,
-        attributes: Vec<Attribute>,
-        debug_info: Option<DebugInfo>,
-    }
-
-    // SAFETY: `SerializableProgramJson` MUST maintain same memory layout as `ProgramJson`. This
-    // would only work if the fields are in the same order and have the same size. Though, both
-    // types are using default Rust repr, which means there is no guarantee by the compiler that the
-    // memory layout of both types will be the same despite comprised of the same fields and
-    // types.
-    let program: ProgramJson = ProgramJson::from(legacy_program);
-    let program: SerializableProgramJson = unsafe { mem::transmute(program) };
-
-    let buffer = serde_json::to_vec(&program)?;
     let mut gzip_encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
     Write::write_all(&mut gzip_encoder, &buffer)?;
+
     gzip_encoder.finish()
 }
 
@@ -281,97 +273,35 @@ fn decompress_legacy_program_data(data: &[u8]) -> Result<LegacyProgram, io::Erro
     Ok(program)
 }
 
-fn parse_value_address_to_str(value_address: ValueAddress) -> String {
-    fn handle_offset_ref(offset: i32, str: &mut String) {
-        if offset == 0 {
-            return;
-        }
-
-        str.push_str(" + ");
-        str.push_str(&if offset.is_negative() { format!("({offset})") } else { offset.to_string() })
-    }
-
-    fn handle_offset_val(value: OffsetValue, str: &mut String) {
-        match value {
-            OffsetValue::Reference(rx, offset, deref) => {
-                let mut tmp = String::from(match rx {
-                    Register::FP => "fp",
-                    Register::AP => "ap",
-                });
-
-                handle_offset_ref(offset, &mut tmp);
-
-                if deref {
-                    str.push_str(&format!("[{tmp}]"));
-                } else {
-                    str.push_str(&tmp);
-                }
-            }
-
-            OffsetValue::Value(value) => handle_offset_ref(value, str),
-
-            OffsetValue::Immediate(value) => {
-                if value == Felt252::from(0u32) {
-                    return;
-                }
-
-                str.push_str(" + ");
-                str.push_str(&value.to_string());
-            }
-        }
-    }
-
-    let mut str = String::new();
-    let is_value: bool;
-
-    if let OffsetValue::Immediate(_) = value_address.offset2 {
-        is_value = false;
-    } else {
-        is_value = true;
-    }
-
-    handle_offset_val(value_address.offset1, &mut str);
-    handle_offset_val(value_address.offset2, &mut str);
-
-    str.push_str(", ");
-    str.push_str(&value_address.value_type);
-
-    if is_value {
-        str.push('*');
-    }
-
-    str = format!("cast({str})");
-
-    if value_address.dereference {
-        str = format!("[{str}]");
-    }
-
-    str
-}
-
 #[cfg(test)]
 mod tests {
+
     use starknet::core::types::ContractClass;
 
-    use super::{legacy_inner_to_rpc_class, legacy_rpc_to_inner_compiled_class};
+    use super::{legacy_inner_to_rpc_class, legacy_rpc_to_compiled_class};
+    use crate::contract::{CompiledClass, DeprecatedCompiledClass};
     use crate::genesis::constant::DEFAULT_OZ_ACCOUNT_CONTRACT;
-    use crate::utils::class::parse_compiled_class_v0;
+    use crate::utils::class::parse_deprecated_compiled_class;
 
-    // There are some discrepancies between the legacy RPC and the inner compiled class types which
-    // results in some data lost during the conversion. Therefore, we are unable to assert for
-    // equality between the original and the converted class. Instead, we assert that the conversion
-    // is successful and that the converted class can be converted back
     #[test]
     fn legacy_rpc_to_inner_and_back() {
-        let class_json = include_str!("../../contracts/compiled/account.json");
-        let class = parse_compiled_class_v0(class_json).unwrap();
+        let json = include_str!("../../contracts/compiled/account.json");
+        let json = serde_json::from_str(json).unwrap();
+        let class: DeprecatedCompiledClass = parse_deprecated_compiled_class(json).unwrap();
 
-        let Ok(ContractClass::Legacy(compressed_legacy_class)) = legacy_inner_to_rpc_class(class)
+        let Ok(ContractClass::Legacy(compressed_legacy_class)) =
+            legacy_inner_to_rpc_class(class.clone())
         else {
             panic!("Expected legacy class");
         };
 
-        assert!(legacy_rpc_to_inner_compiled_class(&compressed_legacy_class).is_ok());
+        let (_, converted_class) = legacy_rpc_to_compiled_class(&compressed_legacy_class).unwrap();
+
+        let CompiledClass::Deprecated(converted) = converted_class else { panic!("invalid class") };
+
+        assert_eq!(class.abi, converted.abi);
+        assert_eq!(class.program, converted.program);
+        assert_eq!(class.entry_points_by_type, converted.entry_points_by_type);
     }
 
     #[test]

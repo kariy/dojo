@@ -16,7 +16,7 @@ use katana_primitives::contract::{
 };
 use katana_primitives::conversion::rpc::{
     compiled_class_hash_from_flattened_sierra_class, flattened_sierra_to_compiled_class,
-    legacy_rpc_to_inner_compiled_class,
+    legacy_rpc_to_compiled_class,
 };
 use katana_primitives::FieldElement;
 use parking_lot::Mutex;
@@ -465,7 +465,7 @@ impl ContractClassProvider for SharedStateProvider {
 
         let (class_hash, compiled_class_hash, casm, sierra) = match class {
             ContractClass::Legacy(class) => {
-                let (_, compiled_class) = legacy_rpc_to_inner_compiled_class(&class).map_err(|e| {
+                let (_, compiled_class) = legacy_rpc_to_compiled_class(&class).map_err(|e| {
                     error!(target: "forked_backend", "error while parsing legacy class {hash:#x}: {e}");
                     ProviderError::ParsingError(e.to_string())
                 })?;
