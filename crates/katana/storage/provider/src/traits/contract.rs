@@ -38,7 +38,7 @@ pub trait ContractClassWriter: Send + Sync {
     ) -> ProviderResult<()>;
 
     /// Returns the compiled class definition of a contract class given its class hash.
-    fn set_class(&self, hash: ClassHash, class: CompiledContractClass) -> ProviderResult<()>;
+    fn set_class(&self, hash: ClassHash, class: CompiledClass) -> ProviderResult<()>;
 
     /// Retrieves the Sierra class definition of a contract class given its class hash.
     fn set_sierra_class(&self, hash: ClassHash, sierra: FlattenedSierraClass)

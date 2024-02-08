@@ -11,8 +11,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use base64::prelude::*;
-use cairo_lang_starknet::casm_contract_class::{CasmContractClass, StarknetSierraCompilationError};
-use cairo_lang_starknet::contract_class::ContractClass;
+use cairo_lang_starknet::casm_contract_class::StarknetSierraCompilationError;
 use cairo_vm::types::errors::program_errors::ProgramError;
 use ethers::types::U256;
 use rayon::prelude::*;
@@ -36,8 +35,7 @@ use super::constant::{
 use super::{FeeTokenConfig, Genesis, GenesisAllocation, UniversalDeployerConfig};
 use crate::block::{BlockHash, BlockNumber, GasPrices};
 use crate::contract::{
-    ClassHash, CompiledClass, CompiledContractClass, CompiledContractClassV0,
-    CompiledContractClassV1, ContractAddress, SierraClass, StorageKey, StorageValue,
+    ClassHash, CompiledClass, ContractAddress, SierraClass, StorageKey, StorageValue,
 };
 use crate::genesis::GenesisClass;
 use crate::utils::class::{parse_compiled_class_v1_new, parse_deprecated_compiled_class};
@@ -1038,10 +1036,12 @@ mod tests {
     fn genesis_from_json_with_unresolved_paths() {
         let file = File::open("./src/genesis/test-genesis.json").unwrap();
         let json: GenesisJson = serde_json::from_reader(file).unwrap();
-        assert!(Genesis::try_from(json)
-            .unwrap_err()
-            .to_string()
-            .contains("Unresolved class artifact path"));
+        assert!(
+            Genesis::try_from(json)
+                .unwrap_err()
+                .to_string()
+                .contains("Unresolved class artifact path")
+        );
     }
 
     #[test]

@@ -25,8 +25,8 @@ use self::constant::{
 };
 use crate::block::{Block, BlockHash, BlockNumber, GasPrices, Header};
 use crate::contract::{
-    ClassHash, CompiledClass, CompiledClassHash, CompiledContractClass, ContractAddress,
-    FlattenedSierraClass, StorageKey, StorageValue,
+    ClassHash, CompiledClass, CompiledClassHash, ContractAddress, FlattenedSierraClass, StorageKey,
+    StorageValue,
 };
 use crate::state::StateUpdatesWithDeclaredClasses;
 use crate::utils::split_u256;

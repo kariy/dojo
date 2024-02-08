@@ -2,10 +2,9 @@ use lazy_static::lazy_static;
 use starknet::core::utils::get_storage_var_address;
 
 use crate::contract::{
-    ClassHash, CompiledClass, CompiledClassHash, CompiledContractClass, ContractAddress,
-    DeprecatedCompiledClass, SierraClass, StorageKey,
+    ClassHash, CompiledClass, CompiledClassHash, ContractAddress, SierraClass, StorageKey,
 };
-use crate::utils::class::{parse_compiled_class, parse_compiled_class_new, parse_sierra_class};
+use crate::utils::class::{parse_compiled_class_new, parse_sierra_class};
 use crate::FieldElement;
 
 /// The default universal deployer contract address.

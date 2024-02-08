@@ -4,12 +4,15 @@ use std::mem;
 use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
-use blockifier::execution::contract_class::ContractClassV0;
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use cairo_vm::felt::Felt252;
-use cairo_vm::serde::deserialize_program::{ApTracking, OffsetValue, ProgramJson, ValueAddress};
+use cairo_vm::serde::deserialize_program::{
+    serialize_program_data, ApTracking, Attribute, BuiltinName, DebugInfo, HintParams, Member,
+    OffsetValue, ProgramJson, ValueAddress,
+};
 use cairo_vm::types::instruction::Register;
 use cairo_vm::types::program::Program;
+use cairo_vm::types::relocatable::MaybeRelocatable;
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::{json, Number};
 use serde_with::serde_as;
@@ -17,7 +20,6 @@ use starknet::core::serde::unsigned_field_element::UfeHex;
 pub use starknet::core::types::contract::legacy::{LegacyContractClass, LegacyProgram};
 use starknet::core::types::contract::legacy::{
     LegacyDebugInfo, LegacyFlowTrackingData, LegacyHint, LegacyIdentifier, LegacyReferenceManager,
-    RawLegacyAbiEntry, RawLegacyEntryPoints,
 };
 pub use starknet::core::types::contract::CompiledClass;
 use starknet::core::types::{
@@ -26,21 +28,10 @@ use starknet::core::types::{
 use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointType};
 
 use crate::contract::{
-    ClassHash, CompiledClassHash, CompiledContractClass, CompiledContractClassV0,
-    FlattenedSierraClass,
+    ClassHash, CompiledClassHash, CompiledContractClassV0, DeprecatedCompiledClass,
+    FlattenedSierraClass, SierraCompiledClass, SierraProgram,
 };
 use crate::FieldElement;
-
-mod primitives {
-    pub use crate::contract::{CompiledContractClass, ContractAddress, Nonce};
-    pub use crate::transaction::{DeclareTx, DeployAccountTx, InvokeTx, L1HandlerTx, Tx};
-    pub use crate::FieldElement;
-}
-
-use cairo_vm::serde::deserialize_program::{
-    serialize_program_data, Attribute, BuiltinName, DebugInfo, HintParams, Member,
-};
-use cairo_vm::types::relocatable::MaybeRelocatable;
 
 /// Converts the legacy inner compiled class type [CompiledContractClassV0] into its RPC equivalent
 /// [`ContractClass`].
@@ -89,21 +80,20 @@ pub fn legacy_inner_to_rpc_class(
 /// [`CompiledContractClass`] along with its class hashes.
 pub fn flattened_sierra_to_compiled_class(
     contract_class: &FlattenedSierraClass,
-) -> Result<(ClassHash, CompiledClassHash, CompiledContractClass)> {
+) -> Result<(ClassHash, CompiledClassHash, crate::contract::CompiledClass)> {
     let class_hash = contract_class.class_hash();
 
-    let contract_class = rpc_to_cairo_contract_class(contract_class)?;
-    let casm_contract = CasmContractClass::from_contract_class(contract_class, true)?;
+    let class = rpc_to_cairo_contract_class(contract_class)?;
 
-    // compute compiled class hash
-    let res = serde_json::to_string(&casm_contract)?;
-    let compiled_class: CompiledClass = serde_json::from_str(&res)?;
+    let program = class.extract_sierra_program()?;
+    let entry_points_by_type = class.entry_points_by_type.clone();
+    let sierra = SierraProgram { program, entry_points_by_type };
 
-    Ok((
-        class_hash,
-        compiled_class.class_hash()?,
-        CompiledContractClass::V1(casm_contract.try_into()?),
-    ))
+    let casm = CasmContractClass::from_contract_class(class, true)?;
+    let compiled_hash = FieldElement::from_bytes_be(&casm.compiled_class_hash().to_be_bytes())?;
+
+    let class = crate::contract::CompiledClass::Class(SierraCompiledClass { casm, sierra });
+    Ok((class_hash, compiled_hash, class))
 }
 
 /// Compute the compiled class hash from the given [`FlattenedSierraClass`].
@@ -120,62 +110,17 @@ pub fn compiled_class_hash_from_flattened_sierra_class(
 /// compiled class type [CompiledContractClass] along with its class hash.
 pub fn legacy_rpc_to_inner_compiled_class(
     compressed_legacy_contract: &CompressedLegacyContractClass,
-) -> Result<(ClassHash, CompiledContractClass)> {
+) -> Result<(ClassHash, crate::contract::CompiledClass)> {
     let class_json = json!({
         "abi": compressed_legacy_contract.abi.clone().unwrap_or_default(),
         "entry_points_by_type": compressed_legacy_contract.entry_points_by_type,
         "program": decompress_legacy_program_data(&compressed_legacy_contract.program)?,
     });
 
-    #[allow(unused)]
-    #[derive(Deserialize)]
-    struct LegacyAttribute {
-        #[serde(default)]
-        accessible_scopes: Vec<String>,
-        end_pc: u64,
-        flow_tracking_data: Option<LegacyFlowTrackingData>,
-        name: String,
-        start_pc: u64,
-        value: String,
-    }
+    let deprecated_class: DeprecatedCompiledClass = serde_json::from_value(class_json.clone())?;
+    let class_hash = serde_json::from_value::<LegacyContractClass>(class_json)?.class_hash()?;
 
-    #[allow(unused)]
-    #[serde_as]
-    #[derive(Deserialize)]
-    pub struct LegacyProgram {
-        attributes: Option<Vec<LegacyAttribute>>,
-        builtins: Vec<String>,
-        compiler_version: Option<String>,
-        #[serde_as(as = "Vec<UfeHex>")]
-        data: Vec<FieldElement>,
-        debug_info: Option<LegacyDebugInfo>,
-        hints: BTreeMap<u64, Vec<LegacyHint>>,
-        identifiers: BTreeMap<String, LegacyIdentifier>,
-        main_scope: String,
-        prime: String,
-        reference_manager: LegacyReferenceManager,
-    }
-
-    #[allow(unused)]
-    #[derive(Deserialize)]
-    struct LegacyContractClassJson {
-        abi: Vec<RawLegacyAbiEntry>,
-        entry_points_by_type: RawLegacyEntryPoints,
-        program: LegacyProgram,
-    }
-
-    // SAFETY: `LegacyContractClassJson` MUST maintain same memory layout as `LegacyContractClass`.
-    // This would only work if the fields are in the same order and have the same size. Though,
-    // both types are using default Rust repr, which means there is no guarantee by the compiler
-    // that the memory layout of both types will be the same despite comprised of the same
-    // fields and types.
-    let class: LegacyContractClassJson = serde_json::from_value(class_json.clone())?;
-    let class: LegacyContractClass = unsafe { mem::transmute(class) };
-
-    let inner_class: ContractClassV0 = serde_json::from_value(class_json)?;
-    let class_hash = class.class_hash()?;
-
-    Ok((class_hash, CompiledContractClass::V0(inner_class)))
+    Ok((class_hash, crate::contract::CompiledClass::Deprecated(deprecated_class)))
 }
 
 /// Converts `starknet-rs` RPC [FlattenedSierraClass] type to Cairo's
@@ -294,6 +239,7 @@ fn decompress_legacy_program_data(data: &[u8]) -> Result<LegacyProgram, io::Erro
 
     #[repr(transparent)]
     #[derive(Deserialize)]
+    #[allow(unused)]
     struct MainScope(String);
 
     impl Default for MainScope {
@@ -408,6 +354,7 @@ mod tests {
     use starknet::core::types::ContractClass;
 
     use super::{legacy_inner_to_rpc_class, legacy_rpc_to_inner_compiled_class};
+    use crate::genesis::constant::DEFAULT_OZ_ACCOUNT_CONTRACT;
     use crate::utils::class::parse_compiled_class_v0;
 
     // There are some discrepancies between the legacy RPC and the inner compiled class types which
@@ -424,6 +371,12 @@ mod tests {
             panic!("Expected legacy class");
         };
 
-        legacy_rpc_to_inner_compiled_class(&compressed_legacy_class).unwrap();
+        assert!(legacy_rpc_to_inner_compiled_class(&compressed_legacy_class).is_ok());
+    }
+
+    #[test]
+    fn flattened_sierra_class_to_compiled_class() {
+        let sierra = DEFAULT_OZ_ACCOUNT_CONTRACT.clone().flatten().unwrap();
+        assert!(super::flattened_sierra_to_compiled_class(&sierra).is_ok());
     }
 }

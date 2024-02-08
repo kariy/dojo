@@ -2,7 +2,6 @@ use std::fmt;
 
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use derive_more::Deref;
-use serde::{Deserialize, Serialize};
 use starknet::core::utils::normalize_address;
 
 use crate::FieldElement;

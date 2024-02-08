@@ -10,7 +10,8 @@ use katana_primitives::block::{
     SealedBlockWithStatus,
 };
 use katana_primitives::contract::{
-    ClassHash, CompiledClassHash, CompiledContractClass, ContractAddress, FlattenedSierraClass,
+    ClassHash, CompiledClass, CompiledClassHash, CompiledContractClass, ContractAddress,
+    FlattenedSierraClass,
 };
 use katana_primitives::env::BlockEnv;
 use katana_primitives::receipt::Receipt;
@@ -467,7 +468,7 @@ impl BlockWriter for ForkedProvider {
 }
 
 impl ContractClassWriter for ForkedProvider {
-    fn set_class(&self, hash: ClassHash, class: CompiledContractClass) -> ProviderResult<()> {
+    fn set_class(&self, hash: ClassHash, class: CompiledClass) -> ProviderResult<()> {
         self.state.shared_contract_classes.compiled_classes.write().insert(hash, class);
         Ok(())
     }
