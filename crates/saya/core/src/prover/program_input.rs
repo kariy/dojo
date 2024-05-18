@@ -2,7 +2,7 @@ use katana_primitives::contract::ContractAddress;
 use katana_primitives::state::StateUpdates;
 use katana_primitives::trace::{CallInfo, EntryPointType, TxExecInfo};
 use katana_primitives::transaction::L1HandlerTx;
-use katana_primitives::utils::transaction::compute_l1_message_hash;
+use katana_primitives::utils::transaction::compute_l2_to_l1_message_hash;
 use starknet::core::types::FieldElement;
 
 use super::state_diff::state_updates_to_json_like;
@@ -56,8 +56,11 @@ pub fn extract_messages(
         .flat_map(|t| t.execute_call_info.iter())
         .filter(|c| c.entry_point_type == EntryPointType::L1Handler)
         .map(|c| {
-            let message_hash =
-                compute_l1_message_hash(*c.caller_address, *c.contract_address, &c.calldata[..]);
+            let message_hash = compute_l2_to_l1_message_hash(
+                c.caller_address.into(),
+                c.contract_address.into(),
+                &c.calldata,
+            );
 
             // Matching execution to a transaction to extract nonce.
             let matching = transactions

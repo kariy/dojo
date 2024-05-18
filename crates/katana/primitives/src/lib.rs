@@ -18,3 +18,9 @@ pub mod state;
 pub mod utils;
 
 pub type FieldElement = starknet::core::types::FieldElement;
+
+/// Re-export of common Ethereum types used in Katana.
+pub mod eth {
+    pub use alloy_primitives::{address, Address};
+    pub use alloy_primitives::{b256, B256};
+}

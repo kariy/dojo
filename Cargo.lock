@@ -6942,7 +6942,9 @@ dependencies = [
 name = "katana-primitives"
 version = "0.7.0-alpha.2"
 dependencies = [
+ "alloy-contract",
  "alloy-primitives",
+ "alloy-sol-types",
  "anyhow",
  "base64 0.21.7",
  "cairo-lang-sierra",
