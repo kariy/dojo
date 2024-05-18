@@ -191,6 +191,7 @@ impl Messenger for EthereumMessaging {
     }
 }
 
+// TODO: refactor this as a method of the message log struct
 fn l1_handler_tx_from_log(log: Log, chain_id: ChainId) -> MessengerResult<L1HandlerTx> {
     let parsed_log = LogMessageToL2::LogMessageToL2Event::decode_log(
         &alloy_primitives::Log::<LogData>::new(
@@ -207,18 +208,22 @@ fn l1_handler_tx_from_log(log: Log, chain_id: ChainId) -> MessengerResult<L1Hand
         EthAddress::try_from(parsed_log.from_address.as_slice()).expect("valid address");
     let contract_address = felt_from_u256(parsed_log.to_address);
     let entry_point_selector = felt_from_u256(parsed_log.selector);
-    let nonce: u64 = parsed_log.nonce.try_into().expect("Fee does not fit into u64.");
+    let nonce: u64 = parsed_log.nonce.try_into().expect("nonce does not fit into u64.");
     let paid_fee_on_l1: u128 = parsed_log.fee.try_into().expect("Fee does not fit into u128.");
-
-    let calldata = parsed_log.payload.clone().into_iter().map(felt_from_u256).collect::<Vec<_>>();
+    let payload = parsed_log.payload.clone().into_iter().map(felt_from_u256).collect::<Vec<_>>();
 
     let message_hash = compute_l1_to_l2_message_hash(
-        from_address,
+        from_address.clone(),
         contract_address,
         entry_point_selector,
-        &calldata,
+        &payload,
         nonce,
     );
+
+    // In an l1_handler transaction, the first element of the calldata is always the Ethereum address of the sender (msg.sender).
+    // https://docs.starknet.io/documentation/architecture_and_concepts/Network_Architecture/messaging-mechanism/#l1-l2-messages
+    let mut calldata = vec![FieldElement::from(from_address)];
+    calldata.extend(payload.clone());
 
     Ok(L1HandlerTx {
         calldata,
